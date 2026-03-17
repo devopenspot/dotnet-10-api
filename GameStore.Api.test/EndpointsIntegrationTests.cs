@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using GameStore.Api.Dtos;
 using GameStore.Api.Models;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace GameStore.Api.test;
 
