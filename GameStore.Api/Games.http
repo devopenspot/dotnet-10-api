@@ -1,0 +1,29 @@
+GET http://localhost:5167/games
+
+###
+GET http://localhost:5167/games/1
+
+###
+POST http://localhost:5167/games
+Content-Type: application/json
+
+{
+	"name": "The Witcher 3: Wild Hunt 2",
+	"releaseDate": "2025-11-19",
+	"genreId": 4,
+	"price": 59.99
+}
+
+###
+PUT http://localhost:5167/games/10
+Content-Type: application/json	
+
+{
+	"name": "The Witcher 3: Wild Hunt 2",
+	"releaseDate": "2025-11-19",
+	"genreId": 4,
+	"price": 59.99
+}
+
+###
+DELETE http://localhost:5167/games/10
