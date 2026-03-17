@@ -1,10 +1,10 @@
 ﻿namespace GameStore.Api.test;
 
-public class UnitTest1
+public class GeneralTests
 {
     [Fact]
-    public void Test1()
+    public void TestProject_ShouldLoad()
     {
-
+        // Scaffold: General test to ensure test project loads
     }
 }
