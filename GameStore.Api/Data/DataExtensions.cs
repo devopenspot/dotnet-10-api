@@ -4,12 +4,21 @@ using Microsoft.EntityFrameworkCore;
 
 public static class DataExtensions
 {
+	/// <summary>
+	/// Migrates the database to the latest version.
+	/// </summary>
+	/// <param name="app">The web application.</param>
 	public static void MigrateDatabase(this WebApplication app)
 	{
 		using var scope = app.Services.CreateScope();
 		var dbContext = scope.ServiceProvider.GetRequiredService<GameStoreContext>();
 		dbContext.Database.Migrate();
 	}
+
+	/// <summary>
+	/// Configures the GameStore database services.
+	/// </summary>
+	/// <param name="builder">The web application builder.</param>
 	public static void GameStoreDatabase(this WebApplicationBuilder builder)
 	{
 		var connectionString = builder.Configuration.GetConnectionString("GameStoreConnection");

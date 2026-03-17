@@ -1,6 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace GameStore.Api.Dtos;
+
+/// <summary>
+/// Data transfer object for updating an existing game.
+/// </summary>
+/// <param name="Name">The name of the game.</param>
+/// <param name="GenreId">The identifier of the genre.</param>
+/// <param name="Price">The price of the game.</param>
+/// <param name="ReleaseDate">The release date of the game.</param>
 public record UpdateGameDto(
 	[Required][StringLength(50)] string Name,
 	[Required] int GenreId,

@@ -45,7 +45,7 @@ public class DataTests
         using var context = CreateContext();
         var genre = new Genre { Name = "Action" };
         context.Set<Genre>().Add(genre);
-        Assert.Equal(1, context.ChangeTracker.Entries<Genre>().Count());
+        Assert.Single(context.ChangeTracker.Entries<Genre>());
 
         var game = new Game
         {
@@ -55,7 +55,7 @@ public class DataTests
             ReleaseDate = new DateOnly(2023, 1, 1)
         };
         context.Set<Game>().Add(game);
-        Assert.Equal(1, context.ChangeTracker.Entries<Game>().Count());
+        Assert.Single(context.ChangeTracker.Entries<Game>());
         Assert.Equal("Test Game", game.Name);
         Assert.Equal(29.99m, game.Price);
         Assert.Equal(new DateOnly(2023, 1, 1), game.ReleaseDate);
@@ -68,7 +68,7 @@ public class DataTests
         using var context = CreateContext();
         var genre = new Genre { Name = "Adventure" };
         context.Set<Genre>().Add(genre);
-        Assert.Equal(1, context.ChangeTracker.Entries<Genre>().Count());
+        Assert.Single(context.ChangeTracker.Entries<Genre>());
         Assert.Equal("Adventure", genre.Name);
     }
 }

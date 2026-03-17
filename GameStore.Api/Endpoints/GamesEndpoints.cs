@@ -5,15 +5,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GameStore.Api.Endpoints;
 
+/// <summary>
+/// Contains endpoint mappings for game-related operations.
+/// </summary>
 public static class GamesEndpoints
 {
 	const string GetGameEndpoint = "GetGame";
-	private static readonly List<GameDto> games = new List<GameDto>
-	{
-		new (1, "The Legend of Zelda: Breath of the Wild", "Action-Adventure", 59.99m, new (2017, 3, 3)),
-		new (2, "Super Mario Odyssey", "Platformer", 49.99m, new (2017, 10, 27)),
-		new (3, "Red Dead Redemption 2", "Action-Adventure", 69.99m, new (2018, 10, 26))
-	};
+
+	/// <summary>
+	/// Maps the game endpoints to the web application.
+	/// </summary>
+	/// <param name="app">The web application.</param>
 	public static void MapGamesEndpoints(this WebApplication app)
 	{
 		var Group = app.MapGroup("/games");
