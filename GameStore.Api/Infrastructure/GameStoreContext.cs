@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using GameStore.Api.Models;
+using GameStore.Api.Domain;
 
-namespace GameStore.Api.Data;
+namespace GameStore.Api.Infrastructure;
 
 /// <summary>
 /// Database context for the GameStore application.

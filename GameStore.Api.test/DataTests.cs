@@ -1,5 +1,5 @@
-using GameStore.Api.Data;
-using GameStore.Api.Models;
+using GameStore.Api.Infrastructure;
+using GameStore.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 
 namespace GameStore.Api.test;

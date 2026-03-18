@@ -1,4 +1,4 @@
-using GameStore.Api.Models;
+using GameStore.Api.Domain;
 
 namespace GameStore.Api.test;
 

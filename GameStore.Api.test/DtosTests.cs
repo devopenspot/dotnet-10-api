@@ -1,4 +1,4 @@
-using GameStore.Api.Dtos;
+using GameStore.Api.Application;
 using System.ComponentModel.DataAnnotations;
 
 namespace GameStore.Api.test;

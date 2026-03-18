@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using GameStore.Api.Data;
+using GameStore.Api.Infrastructure;
 
 namespace GameStore.Api.test;
 

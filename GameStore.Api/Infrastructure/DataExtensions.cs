@@ -1,5 +1,5 @@
-using GameStore.Api.Data;
-using GameStore.Api.Models;
+using GameStore.Api.Domain;
+using GameStore.Api.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 public static class DataExtensions

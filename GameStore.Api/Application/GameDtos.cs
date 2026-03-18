@@ -1,4 +1,4 @@
-namespace GameStore.Api.Dtos;
+namespace GameStore.Api.Application;
 
 /// <summary>
 /// Data transfer object for game information.

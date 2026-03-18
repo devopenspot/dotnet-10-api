@@ -1,4 +1,4 @@
-namespace GameStore.Api.Models;
+namespace GameStore.Api.Domain;
 
 /// <summary>
 /// Represents a genre in the GameStore.
