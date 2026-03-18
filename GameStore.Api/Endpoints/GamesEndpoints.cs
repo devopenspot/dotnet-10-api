@@ -1,78 +1,46 @@
 using GameStore.Api.Application;
+using GameStore.Api.Application.Commands;
+using GameStore.Api.Application.Queries;
 using GameStore.Api.Domain;
-using GameStore.Api.Infrastructure;
-using Microsoft.EntityFrameworkCore;
+using MediatR;
 
 namespace GameStore.Api.Endpoints;
 
-/// <summary>
-/// Contains endpoint mappings for game-related operations.
-/// </summary>
 public static class GamesEndpoints
 {
-	const string GetGameEndpoint = "GetGame";
-
-	/// <summary>
-	/// Maps the game endpoints to the web application.
-	/// </summary>
-	/// <param name="app">The web application.</param>
 	public static void MapGamesEndpoints(this WebApplication app)
 	{
-		var Group = app.MapGroup("/games");
+		var group = app.MapGroup("/games");
 
-		Group.MapGet("/", async (GameStoreContext dbContext) =>
+		group.MapGet("/", async (IMediator mediator) =>
 		{
-			return Results.Ok(await dbContext.Set<Game>().AsNoTracking().ToListAsync());
+			return Results.Ok(await mediator.Send(new GetAllGamesQuery()));
 		});
 
-		Group.MapGet("/{id}", async (int id, GameStoreContext dbContext) =>
+		group.MapGet("/{id}", async (int id, IMediator mediator) =>
 		{
-			var game = await dbContext.Set<Game>().FindAsync(id);
+			var game = await mediator.Send(new GetGameByIdQuery(id));
 			return game is not null ? Results.Ok(game) : Results.NotFound();
 		});
 
-		Group.MapPost("/", async (CreateGameDto game, GameStoreContext dbContext) =>
+		group.MapPost("/", async (CreateGameDto dto, IMediator mediator) =>
 		{
-			var newGame = new Game
-			{
-				Name = game.Name,
-				GenreId = game.GenreId,
-				Price = game.Price,
-				ReleaseDate = game.ReleaseDate
-			};
-			dbContext.Add(newGame);
-			await dbContext.SaveChangesAsync();
-			return Results.Created($"/{newGame.Id}", newGame);
+			var command = new CreateGameCommand(dto.Name, dto.GenreId, dto.Price, dto.ReleaseDate);
+			var game = await mediator.Send(command);
+			return Results.Created($"/games/{game.Id}", game);
 		});
 
-		Group.MapPut("/{id}", async (int id, UpdateGameDto updatedGame, GameStoreContext dbContext) =>
+		group.MapPut("/{id}", async (int id, UpdateGameDto dto, IMediator mediator) =>
 		{
-			var game = await dbContext.Set<Game>().FindAsync(id);
-			if (game is null)
-			{
-				return Results.NotFound();
-			}
-
-			game.Name = updatedGame.Name;
-			game.GenreId = updatedGame.GenreId;
-			game.Price = updatedGame.Price;
-			game.ReleaseDate = updatedGame.ReleaseDate;
-
-			await dbContext.SaveChangesAsync();
-			return Results.Ok(game);
+			var command = new UpdateGameCommand(id, dto.Name, dto.GenreId, dto.Price, dto.ReleaseDate);
+			var game = await mediator.Send(command);
+			return game is not null ? Results.Ok(game) : Results.NotFound();
 		});
 
-		Group.MapDelete("/{id}", async (int id, GameStoreContext dbContext) =>
+		group.MapDelete("/{id}", async (int id, IMediator mediator) =>
 		{
-			var game = await dbContext.Set<Game>().FindAsync(id);
-			if (game is null)
-			{
-				return Results.NotFound();
-			}
-
-			dbContext.Remove(game);
-			await dbContext.SaveChangesAsync();
-			return Results.NoContent();
+			var result = await mediator.Send(new DeleteGameCommand(id));
+			return result ? Results.NoContent() : Results.NotFound();
 		});
 	}
 }
