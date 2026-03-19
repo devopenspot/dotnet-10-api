@@ -1,26 +1,23 @@
 using GameStore.Api.Application.Commands;
+using GameStore.Api.Application.Ports;
 using GameStore.Api.Domain;
-using GameStore.Api.Infrastructure;
 using MediatR;
 
 namespace GameStore.Api.Application.Handlers;
 
-public class UpdateGameCommandHandler(GameStoreContext context) : IRequestHandler<UpdateGameCommand, Game?>
+public class UpdateGameCommandHandler(IGameRepository repository) : IRequestHandler<UpdateGameCommand, Game?>
 {
 	public async Task<Game?> Handle(UpdateGameCommand request, CancellationToken cancellationToken)
 	{
-		var game = await context.Set<Game>().FindAsync([request.Id], cancellationToken);
-		if (game is null)
+		var game = new Game
 		{
-			return null;
-		}
+			Id = request.Id,
+			Name = request.Name,
+			GenreId = request.GenreId,
+			Price = request.Price,
+			ReleaseDate = request.ReleaseDate
+		};
 
-		game.Name = request.Name;
-		game.GenreId = request.GenreId;
-		game.Price = request.Price;
-		game.ReleaseDate = request.ReleaseDate;
-
-		await context.SaveChangesAsync(cancellationToken);
-		return game;
+		return await repository.UpdateAsync(game, cancellationToken);
 	}
 }

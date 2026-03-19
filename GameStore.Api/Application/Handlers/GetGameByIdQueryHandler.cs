@@ -1,14 +1,14 @@
+using GameStore.Api.Application.Ports;
 using GameStore.Api.Application.Queries;
 using GameStore.Api.Domain;
-using GameStore.Api.Infrastructure;
 using MediatR;
 
 namespace GameStore.Api.Application.Handlers;
 
-public class GetGameByIdQueryHandler(GameStoreContext context) : IRequestHandler<GetGameByIdQuery, Game?>
+public class GetGameByIdQueryHandler(IGameRepository repository) : IRequestHandler<GetGameByIdQuery, Game?>
 {
 	public async Task<Game?> Handle(GetGameByIdQuery request, CancellationToken cancellationToken)
 	{
-		return await context.Set<Game>().FindAsync([request.Id], cancellationToken);
+		return await repository.GetByIdAsync(request.Id, cancellationToken);
 	}
 }
