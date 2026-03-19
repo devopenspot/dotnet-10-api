@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using GameStore.Api.Application;
 using GameStore.Api.Domain;
 using Microsoft.AspNetCore.Mvc.Testing;
+using GameStore.Api.test.ObjectMothers;
 
 namespace GameStore.Api.test;
 

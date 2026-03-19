@@ -1,6 +1,7 @@
 using GameStore.Api.Infrastructure;
 using GameStore.Api.Domain;
 using Microsoft.EntityFrameworkCore;
+using GameStore.Api.test.ObjectMothers;
 
 namespace GameStore.Api.test;
 
@@ -43,17 +44,11 @@ public class DataTests
     public async Task GameStoreContext_ShouldSaveAndRetrieveGame()
     {
         using var context = CreateContext();
-        var genre = new Genre { Name = "Action" };
+        var genre = GenreObjectMother.Create();
         context.Set<Genre>().Add(genre);
         Assert.Single(context.ChangeTracker.Entries<Genre>());
 
-        var game = new Game
-        {
-            Name = "Test Game",
-            GenreId = genre.Id,
-            Price = 29.99m,
-            ReleaseDate = new DateOnly(2023, 1, 1)
-        };
+        var game = GameObjectMother.Create(g => g.GenreId = genre.Id);
         context.Set<Game>().Add(game);
         Assert.Single(context.ChangeTracker.Entries<Game>());
         Assert.Equal("Test Game", game.Name);
@@ -66,7 +61,7 @@ public class DataTests
     public async Task GameStoreContext_ShouldSaveAndRetrieveGenre()
     {
         using var context = CreateContext();
-        var genre = new Genre { Name = "Adventure" };
+        var genre = GenreObjectMother.Adventure();
         context.Set<Genre>().Add(genre);
         Assert.Single(context.ChangeTracker.Entries<Genre>());
         Assert.Equal("Adventure", genre.Name);

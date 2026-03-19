@@ -1,5 +1,6 @@
 using GameStore.Api.Application;
 using System.ComponentModel.DataAnnotations;
+using GameStore.Api.test.ObjectMothers;
 
 namespace GameStore.Api.test;
 
@@ -8,7 +9,7 @@ public class DtosTests
     [Fact]
     public void GameDto_ShouldBeCreatedWithValidData()
     {
-        var gameDto = new GameDto(1, "Test Game", "Action", 29.99m, new DateOnly(2023, 1, 1));
+        var gameDto = GameDtoObjectMother.CreateDto();
         Assert.Equal(1, gameDto.Id);
         Assert.Equal("Test Game", gameDto.Name);
         Assert.Equal("Action", gameDto.Genre);
@@ -53,7 +54,7 @@ public class DtosTests
     [Fact]
     public void GenreDto_ShouldBeCreatedWithValidData()
     {
-        var genreDto = new GenreDto(1, "Action");
+        var genreDto = GenreDtoObjectMother.Create();
         Assert.Equal(1, genreDto.Id);
         Assert.Equal("Action", genreDto.Name);
     }
