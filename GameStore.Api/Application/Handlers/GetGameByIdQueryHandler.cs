@@ -1,14 +1,31 @@
+using GameStore.Api.Application.Cache;
 using GameStore.Api.Application.Ports;
 using GameStore.Api.Application.Queries;
-using GameStore.Api.Domain;
 using MediatR;
 
 namespace GameStore.Api.Application.Handlers;
 
-public class GetGameByIdQueryHandler(IGameRepository repository) : IRequestHandler<GetGameByIdQuery, Game?>
+public class GetGameByIdQueryHandler(
+	IGameRepository repository,
+	IGameQueryService queryService) : IRequestHandler<GetGameByIdQuery, GameDto?>
 {
-	public async Task<Game?> Handle(GetGameByIdQuery request, CancellationToken cancellationToken)
+	public async Task<GameDto?> Handle(GetGameByIdQuery request, CancellationToken cancellationToken)
 	{
-		return await repository.GetByIdAsync(request.Id, cancellationToken);
+		var cached = await queryService.GetGameByIdAsync(request.Id, cancellationToken);
+		if (cached is not null)
+		{
+			return cached;
+		}
+
+		var game = await repository.GetByIdAsync(request.Id, cancellationToken);
+		if (game is null)
+		{
+			return null;
+		}
+
+		var genre = await repository.GetGenreByIdAsync(game.GenreId, cancellationToken);
+		var dto = new GameDto(game.Id, game.Name, genre?.Name ?? "", game.Price, game.ReleaseDate);
+		await queryService.SetGameAsync(dto, cancellationToken);
+		return dto;
 	}
 }

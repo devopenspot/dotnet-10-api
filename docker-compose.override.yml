@@ -1,0 +1,21 @@
+services:
+  postgres:
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: final
+    ports:
+      - "8080:8080"
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__GameStoreConnection: "Host=postgres;Port=5432;Database=gamestore;Username=postgres;Password=postgres"
+      ConnectionStrings__RedisConnection: "redis:6379"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

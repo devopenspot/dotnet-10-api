@@ -3,40 +3,54 @@
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [Docker Desktop](https://www.docker.com/products/docker-desktop)
 - IDE: VS Code, Rider, or Visual Studio 2022+
 
-## Setup
+## Two Development Options
 
-### 1. Clone the Repository
+### Option A: Docker (Recommended for full stack)
+
+```bash
+# Start PostgreSQL + Redis + API
+docker-compose up -d
+
+# API available at http://localhost:8080
+curl http://localhost:8080/games
+```
+
+### Option B: Local Development (SQLite + Memory Cache)
+
+```bash
+cd GameStore.Api
+dotnet run
+
+# API available at http://localhost:5167
+```
+
+## Quick Start (Local)
+
+### 1. Clone and Setup
 
 ```bash
 git clone <repository-url>
 cd dotnet-10-api
-```
-
-### 2. Restore Dependencies
-
-```bash
 dotnet restore
 ```
 
-### 3. Run the Application
+### 2. Run
 
 ```bash
 cd GameStore.Api
 dotnet run
 ```
 
-The API starts at `http://localhost:5167` with automatic database migration and seed data.
-
-### 4. Verify Installation
+### 3. Test
 
 ```bash
-# Test the health endpoint
 curl http://localhost:5167/games
 ```
 
-Expected response:
+Response:
 ```json
 [
   {
@@ -49,23 +63,59 @@ Expected response:
 ]
 ```
 
+## Docker Setup
+
+### Start Services
+
+```bash
+docker-compose up -d
+```
+
+### Verify Services
+
+```bash
+# Check API
+curl http://localhost:8080/games
+
+# Check PostgreSQL
+docker-compose exec postgres pg_isready
+
+# Check Redis
+docker-compose exec redis redis-cli ping
+```
+
+### View Logs
+
+```bash
+docker-compose logs -f
+```
+
+### Stop Services
+
+```bash
+docker-compose down
+```
+
 ## Development Tools
 
 ### HTTP Client
 
-Use `Games.http` in the root directory to test endpoints directly from VS Code:
+Use `Games.http` in the root directory:
 
 ```bash
-# Open Games.http and click "Send Request"
+# Open Games.http in VS Code and click "Send Request"
 ```
 
 ### Database Inspection
 
-The SQLite database is at `GameStore.Api/GameStore.db`. Use any SQLite viewer or:
-
+**SQLite (local):**
 ```bash
-dotnet tool install --global dotnet-sqlite
-sqlite3 GameStore.db ".tables"
+sqlite3 GameStore.Api/GameStore.db ".tables"
+```
+
+**PostgreSQL (Docker):**
+```bash
+docker-compose exec postgres psql -U postgres -d gamestore -c "SELECT * FROM \"Games\";"
 ```
 
 ## Troubleshooting
@@ -73,21 +123,27 @@ sqlite3 GameStore.db ".tables"
 ### Port Already in Use
 
 ```bash
-# Find and kill the process
-dotnet build && dotnet run --urls "http://localhost:5168"
+# Find process using port
+lsof -i :5167
+
+# Use different port
+dotnet run --urls "http://localhost:5168"
 ```
 
-### Database Reset
+### Docker Connection Issues
 
 ```bash
-rm GameStore.Api/GameStore.db
-dotnet run --project GameStore.Api
+# Restart Docker
+docker-compose down
+docker-compose up -d
 ```
 
 ### Clean Rebuild
 
 ```bash
-dotnet clean
-dotnet restore
-dotnet build
+# Local
+dotnet clean && dotnet restore && dotnet build
+
+# Docker
+docker-compose down -v && docker-compose up -d --build
 ```

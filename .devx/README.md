@@ -1,43 +1,46 @@
 # GameStore API
 
-A modern RESTful API for managing video games and genres, built with .NET 10 using Clean Architecture and CQRS patterns.
+A modern RESTful API for managing video games and genres, built with .NET 10 using Clean Architecture, CQRS, PostgreSQL, and Redis.
 
 ## Quick Start
 
+### Docker (Full Stack)
 ```bash
-# Clone and run
+docker-compose up -d
+# API: http://localhost:8080
+```
+
+### Local (SQLite)
+```bash
 cd GameStore.Api
 dotnet run
-
-# API available at http://localhost:5167
+# API: http://localhost:5167
 ```
 
-## Project Structure
+## Architecture
 
 ```
-GameStore.Api/
-├── Domain/           # Core business entities
-├── Application/      # Commands, Queries, Handlers, DTOs
-├── Infrastructure/    # Data access, repositories, EF Core
-├── Endpoints/         # Minimal API route definitions
-└── Program.cs         # Application entry point
+Commands (Write) → PostgreSQL → Redis (invalidate)
+Queries (Read) → Redis Cache → PostgreSQL (on miss)
 ```
 
-## Key Technologies
+## Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| .NET 10 | Runtime |
-| ASP.NET Core Minimal APIs | HTTP endpoints |
-| MediatR | CQRS pattern |
-| Entity Framework Core | Database ORM |
-| SQLite | Database |
-| xUnit | Testing |
+| Component | Technology |
+|-----------|------------|
+| Runtime | .NET 10 |
+| API | ASP.NET Core Minimal APIs |
+| Commands | PostgreSQL + EF Core |
+| Queries | Redis Cache |
+| CQRS | MediatR |
+| Container | Docker Compose |
 
-## Resources
+## Documentation
 
-- [Getting Started](./getting-started.md) - Complete setup guide
-- [Architecture](./architecture.md) - Deep dive into design
-- [API Reference](./api-reference.md) - Endpoint documentation
+- [Getting Started](./getting-started.md) - Setup guide
+- [Architecture](./architecture.md) - Design patterns
+- [Docker](./docker.md) - Container orchestration
+- [API Reference](./api-reference.md) - Endpoint docs
 - [Contributing](./contributing.md) - Development workflow
 - [Testing](./testing.md) - Testing guidelines
+- [CQRS Commands/Queries](./cqrs-commands-queries.md) - MediatR patterns

@@ -4,10 +4,6 @@ using Microsoft.EntityFrameworkCore;
 
 public static class DataExtensions
 {
-	/// <summary>
-	/// Migrates the database to the latest version.
-	/// </summary>
-	/// <param name="app">The web application.</param>
 	public static void MigrateDatabase(this WebApplication app)
 	{
 		using var scope = app.Services.CreateScope();
@@ -15,24 +11,26 @@ public static class DataExtensions
 		dbContext.Database.Migrate();
 	}
 
-	/// <summary>
-	/// Configures the GameStore database services.
-	/// </summary>
-	/// <param name="builder">The web application builder.</param>
 	public static void GameStoreDatabase(this WebApplicationBuilder builder)
 	{
-		var connectionString = builder.Configuration.GetConnectionString("GameStoreConnection");
-		// builder.Services.AddScoped<GameStoreContext>();
-		// DbContext has a Scoped service lifetime because:
-		// 1. It ensures that a new instance of DbContext is created per request
-		// 2. DB connections are a limited and expensive resource
-		// 3. DbContext is not thread-safe. Scoped avoids concurrency issues
-		// 4. Makes it easier to manage transactions and ensure data consistency
-		// 5. Reusing a DbContext instance can lead to increased memory usage
+		var connectionString = builder.Configuration.GetConnectionString("GameStoreConnection")!;
+		var isDocker = Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
 
-		builder.Services.AddSqlite<GameStoreContext>(
-		connectionString, 
-			optionsAction: options => options.UseSeeding((context, _) =>
+		builder.Services.AddDbContext<GameStoreContext>(options =>
+		{
+			if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase))
+			{
+				options.UseNpgsql(connectionString, npgsql =>
+				{
+					npgsql.EnableRetryOnFailure(3);
+				});
+			}
+			else
+			{
+			options.UseSqlite(connectionString);
+			}
+
+			options.UseSeeding((context, _) =>
 			{
 				if (!context.Set<Genre>().Any())
 				{
@@ -57,7 +55,7 @@ public static class DataExtensions
 					);
 					context.SaveChanges();
 				}
-			}
-		));
+			});
+		});
 	}
 }

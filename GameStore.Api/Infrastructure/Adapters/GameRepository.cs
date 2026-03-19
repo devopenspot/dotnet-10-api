@@ -53,4 +53,9 @@ public class GameRepository(GameStoreContext context) : IGameRepository
 		await context.SaveChangesAsync(ct);
 		return true;
 	}
+
+	public async Task<Genre?> GetGenreByIdAsync(int id, CancellationToken ct = default)
+	{
+		return await context.Set<Genre>().FindAsync([id], ct);
+	}
 }

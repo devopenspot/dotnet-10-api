@@ -2,32 +2,52 @@
 
 ## Overview
 
-GameStore.Api follows **Clean Architecture** principles with **CQRS** pattern implementation.
+GameStore.Api follows **Clean Architecture** principles with **CQRS** pattern, using PostgreSQL for commands and Redis for query caching.
 
 ## Layer Structure
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   Endpoints                      │
+│                   Endpoints                       │
 │            (Minimal API Routes)                  │
 ├─────────────────────────────────────────────────┤
 │                  Application                      │
-│    Commands │ Queries │ Handlers │ DTOs │ Ports │
+│  Commands │ Queries │ Handlers │ DTOs │ Cache   │
 ├─────────────────────────────────────────────────┤
 │                   Infrastructure                  │
-│        EF Core │ Repositories │ Migrations        │
+│  EF Core (PostgreSQL) │ Repositories │ Redis     │
 ├─────────────────────────────────────────────────┤
 │                     Domain                        │
 │              (Entities │ Value Objects)           │
 └─────────────────────────────────────────────────┘
 ```
 
+## CQRS Pattern
+
+**Commands** (Write) → PostgreSQL
+**Queries** (Read) → Redis Cache
+
+### Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        WRITE PATH                                │
+│  HTTP → Endpoint → Command → Handler → Repository → PostgreSQL  │
+│                                   ↓                              │
+│                              Notification → Redis (invalidate)    │
+└─────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────┐
+│                        READ PATH                                 │
+│  HTTP → Endpoint → Query → Handler → Redis Cache → (miss: DB)   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ## Domain Layer
 
-Contains core business entities with no external dependencies.
+Core business entities with no external dependencies.
 
 ```csharp
-// Domain/Game.cs
 public class Game
 {
     public int Id { get; set; }
@@ -41,122 +61,96 @@ public class Game
 
 ## Application Layer
 
-Contains business logic with **MediatR** for CQRS separation.
-
 ### Commands (Write Operations)
 
-- `CreateGameCommand` - Add new game
-- `UpdateGameCommand` - Modify existing game
-- `DeleteGameCommand` - Remove game
+- `CreateGameCommand` → PostgreSQL
+- `UpdateGameCommand` → PostgreSQL
+- `DeleteGameCommand` → PostgreSQL
 
 ### Queries (Read Operations)
 
-- `GetAllGamesQuery` - Retrieve all games
-- `GetGameByIdQuery` - Retrieve single game
+- `GetAllGamesQuery` → Redis Cache
+- `GetGameByIdQuery` → Redis Cache
 
-### Handlers
+### Event-Driven Synchronization
 
-Each command/query has a corresponding handler that implements business logic:
+Commands dispatch notifications that update the Redis cache:
 
 ```csharp
-public class GetAllGamesHandler : IRequestHandler<GetAllGamesQuery, IEnumerable<GameDto>>
+// Command Handler
+var created = await repository.CreateAsync(game, ct);
+await publisher.Publish(new GameCreatedNotification(
+    created.Id, created.Name, created.GenreId, created.Price, created.ReleaseDate), ct);
+
+// Notification Handler (updates Redis)
+public async Task Handle(GameCreatedNotification notification, CancellationToken ct)
 {
-    public async Task<IEnumerable<GameDto>> Handle(GetAllGamesQuery request, CancellationToken cancellationToken)
-    {
-        // Implementation
-    }
+    var dto = new GameDto(notification.Id, notification.Name, ...);
+    await _queryService.SetGameAsync(dto, ct);
+    await _queryService.InvalidateAllGamesAsync(ct);
 }
 ```
 
-### Ports (Interfaces)
-
-Repository interfaces define data access contracts:
+### Cache Service
 
 ```csharp
-// Application/Ports/IGameRepository.cs
-public interface IGameRepository
+public interface IGameQueryService
 {
-    Task<IEnumerable<Game>> GetAllAsync(CancellationToken ct = default);
-    Task<Game?> GetByIdAsync(int id, CancellationToken ct = default);
-    Task<Game> CreateAsync(Game game, CancellationToken ct = default);
-    Task UpdateAsync(Game game, CancellationToken ct = default);
-    Task DeleteAsync(int id, CancellationToken ct = default);
+    Task<List<GameDto>?> GetAllGamesAsync(CancellationToken ct = default);
+    Task<GameDto?> GetGameByIdAsync(int id, CancellationToken ct = default);
+    Task SetAllGamesAsync(List<GameDto> games, CancellationToken ct = default);
+    Task SetGameAsync(GameDto game, CancellationToken ct = default);
+    Task InvalidateAllGamesAsync(CancellationToken ct = default);
+    Task InvalidateGameAsync(int id, CancellationToken ct = default);
 }
 ```
 
 ## Infrastructure Layer
 
-Implements ports using Entity Framework Core.
+### Database Providers
 
-### DbContext
-
-```csharp
-public class GameStoreContext : DbContext
-{
-    public DbSet<Game> Games => Set<Game>();
-    public DbSet<Genre> Genres => Set<Genre>();
-}
-```
-
-### Repositories
+- **PostgreSQL** (production): `Npgsql.EntityFrameworkCore.PostgreSQL`
+- **SQLite** (local dev): `Microsoft.EntityFrameworkCore.Sqlite`
 
 ```csharp
-public class GameRepository : IGameRepository
-{
-    private readonly GameStoreContext _context;
-    
-    public GameRepository(GameStoreContext context)
-    {
-        _context = context;
-    }
-}
+// Auto-detects based on connection string
+if (connectionString.Contains("Host="))
+    options.UseNpgsql(connectionString);
+else
+    options.UseSqlite(connectionString);
 ```
 
-## Endpoints Layer
+### Redis Cache
 
-Minimal API routes using `MapGroup`:
-
-```csharp
-public static class GameEndpoints
-{
-    public static void MapGameEndpoints(this WebApplication app)
-    {
-        var group = app.MapGroup("/games").WithTags("Games");
-        
-        group.MapGet("/", async (IMediator mediator) => 
-            await mediator.Send(new GetAllGamesQuery()));
-            
-        group.MapPost("/", async (CreateGameDto dto, IMediator mediator) =>
-            await mediator.Send(new CreateGameCommand(dto)));
-    }
-}
-```
+Uses `StackExchange.Redis` for distributed caching with 10-minute TTL.
 
 ## Request Flow
 
+### Write (Command)
 ```
-HTTP Request
-    ↓
-Minimal API Endpoint
-    ↓
-MediatR Command/Query
-    ↓
-Handler
-    ↓
-Repository
-    ↓
-EF Core → SQLite
+HTTP POST/PUT/DELETE → Endpoint → MediatR Command → Handler → PostgreSQL
+                                                        ↓
+                                            MediatR Notification
+                                                        ↓
+                                            Redis (invalidate cache)
+```
+
+### Read (Query)
+```
+HTTP GET → Endpoint → MediatR Query → Handler → Redis Cache
+                                               ↓ (cache miss)
+                                           PostgreSQL → Redis
 ```
 
 ## Seed Data
 
-The application seeds sample data on startup:
+Sample data is seeded on application startup:
 
 **Genres:** Action, Adventure, RPG, Strategy, Simulation
 
 **Sample Games:**
-- The Legend of Zelda: Breath of the Wild (Action)
-- The Witcher 3: Wild Hunt (RPG)
-- Civilization VI (Strategy)
-- Microsoft Flight Simulator (Simulation)
-- DOOM Eternal (Action)
+- The Legend of Zelda: Breath of the Wild
+- The Witcher 3: Wild Hunt
+- Civilization VI
+- Microsoft Flight Simulator
+- DOOM Eternal
