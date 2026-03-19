@@ -11,18 +11,30 @@ public class CreateGameCommandHandler(IGameRepository repository, IPublisher pub
 {
 	public async Task<GameDto> Handle(CreateGameCommand request, CancellationToken cancellationToken)
 	{
-		var game = new Game
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		try
 		{
-			Name = request.Name,
-			GenreId = request.GenreId,
-			Price = request.Price,
-			ReleaseDate = request.ReleaseDate
-		};
+			var game = new Game
+			{
+				Name = request.Name,
+				GenreId = request.GenreId,
+				Price = request.Price,
+				ReleaseDate = request.ReleaseDate
+			};
 
-		var created = await repository.CreateAsync(game, cancellationToken);
-		var genre = await repository.GetGenreByIdAsync(created.GenreId, cancellationToken);
-		await publisher.Publish(new GameCreatedNotification(
-			created.Id, created.Name, created.GenreId, created.Price, created.ReleaseDate), cancellationToken);
-		return new GameDto(created.Id, created.Name, genre?.Name ?? "", created.Price, created.ReleaseDate);
+			var created = await repository.CreateAsync(game, cancellationToken);
+			var genre = await repository.GetGenreByIdAsync(created.GenreId, cancellationToken);
+			await publisher.Publish(new GameCreatedNotification(
+				created.Id, created.Name, created.GenreId, created.Price, created.ReleaseDate), cancellationToken);
+			
+			AppMetrics.GamesCreated.Add(1);
+			
+			return new GameDto(created.Id, created.Name, genre?.Name ?? "", created.Price, created.ReleaseDate);
+		}
+		finally
+		{
+			stopwatch.Stop();
+			AppMetrics.CommandHandlerDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+		}
 	}
 }

@@ -11,24 +11,36 @@ public class UpdateGameCommandHandler(IGameRepository repository, IPublisher pub
 {
 	public async Task<GameDto?> Handle(UpdateGameCommand request, CancellationToken cancellationToken)
 	{
-		var game = new Game
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		try
 		{
-			Id = request.Id,
-			Name = request.Name,
-			GenreId = request.GenreId,
-			Price = request.Price,
-			ReleaseDate = request.ReleaseDate
-		};
+			var game = new Game
+			{
+				Id = request.Id,
+				Name = request.Name,
+				GenreId = request.GenreId,
+				Price = request.Price,
+				ReleaseDate = request.ReleaseDate
+			};
 
-		var updated = await repository.UpdateAsync(game, cancellationToken);
-		if (updated is null)
-		{
-			return null;
+			var updated = await repository.UpdateAsync(game, cancellationToken);
+			if (updated is null)
+			{
+				return null;
+			}
+
+			var genre = await repository.GetGenreByIdAsync(updated.GenreId, cancellationToken);
+			await publisher.Publish(new GameUpdatedNotification(
+				updated.Id, updated.Name, updated.GenreId, updated.Price, updated.ReleaseDate), cancellationToken);
+			
+			AppMetrics.GamesUpdated.Add(1);
+			
+			return new GameDto(updated.Id, updated.Name, genre?.Name ?? "", updated.Price, updated.ReleaseDate);
 		}
-
-		var genre = await repository.GetGenreByIdAsync(updated.GenreId, cancellationToken);
-		await publisher.Publish(new GameUpdatedNotification(
-			updated.Id, updated.Name, updated.GenreId, updated.Price, updated.ReleaseDate), cancellationToken);
-		return new GameDto(updated.Id, updated.Name, genre?.Name ?? "", updated.Price, updated.ReleaseDate);
+		finally
+		{
+			stopwatch.Stop();
+			AppMetrics.CommandHandlerDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+		}
 	}
 }

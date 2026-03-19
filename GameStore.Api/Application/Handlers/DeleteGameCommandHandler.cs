@@ -9,11 +9,21 @@ public class DeleteGameCommandHandler(IGameRepository repository, IPublisher pub
 {
 	public async Task<bool> Handle(DeleteGameCommand request, CancellationToken cancellationToken)
 	{
-		var deleted = await repository.DeleteAsync(request.Id, cancellationToken);
-		if (deleted)
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		try
 		{
-			await publisher.Publish(new GameDeletedNotification(request.Id), cancellationToken);
+			var deleted = await repository.DeleteAsync(request.Id, cancellationToken);
+			if (deleted)
+			{
+				await publisher.Publish(new GameDeletedNotification(request.Id), cancellationToken);
+				AppMetrics.GamesDeleted.Add(1);
+			}
+			return deleted;
 		}
-		return deleted;
+		finally
+		{
+			stopwatch.Stop();
+			AppMetrics.CommandHandlerDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
+		}
 	}
 }

@@ -28,6 +28,9 @@ Common development tasks and patterns.
 ### [Troubleshooting](./guides/troubleshooting.md)
 Solutions to common issues.
 
+### [Monitoring](./guides/monitoring.md)
+Prometheus & Grafana observability setup and metrics.
+
 ### [Testing](../GameStore.Api.test/docs/README.md)
 Testing patterns and practices for this project.
 
@@ -42,6 +45,9 @@ Testing patterns and practices for this project.
 | SQLite | Development database |
 | Redis | Query caching layer |
 | xUnit | Testing framework |
+| OpenTelemetry | Observability |
+| Prometheus | Metrics collection |
+| Grafana | Metrics visualization | |
 
 ## Project Structure
 
@@ -68,6 +74,7 @@ GameStore.Api/
 - **Dual Database**: SQLite for development, PostgreSQL for production
 - **Redis Caching**: Query results are cached when Redis is available
 - **Auto-migration**: Database migrations run automatically on startup
+- **Observability**: Built-in metrics via OpenTelemetry + Prometheus + Grafana
 
 ## Need Help?
 

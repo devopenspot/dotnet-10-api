@@ -11,21 +11,34 @@ public class GetGameByIdQueryHandler(
 {
 	public async Task<GameDto?> Handle(GetGameByIdQuery request, CancellationToken cancellationToken)
 	{
-		var cached = await queryService.GetGameByIdAsync(request.Id, cancellationToken);
-		if (cached is not null)
+		var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+		try
 		{
-			return cached;
-		}
+			var cached = await queryService.GetGameByIdAsync(request.Id, cancellationToken);
+			if (cached is not null)
+			{
+				AppMetrics.CacheHits.Add(1);
+				return cached;
+			}
 
-		var game = await repository.GetByIdAsync(request.Id, cancellationToken);
-		if (game is null)
+			var game = await repository.GetByIdAsync(request.Id, cancellationToken);
+			if (game is null)
+			{
+				return null;
+			}
+
+			var genre = await repository.GetGenreByIdAsync(game.GenreId, cancellationToken);
+			var dto = new GameDto(game.Id, game.Name, genre?.Name ?? "", game.Price, game.ReleaseDate);
+			await queryService.SetGameAsync(dto, cancellationToken);
+			
+			AppMetrics.CacheMisses.Add(1);
+			
+			return dto;
+		}
+		finally
 		{
-			return null;
+			stopwatch.Stop();
+			AppMetrics.QueryHandlerDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
 		}
-
-		var genre = await repository.GetGenreByIdAsync(game.GenreId, cancellationToken);
-		var dto = new GameDto(game.Id, game.Name, genre?.Name ?? "", game.Price, game.ReleaseDate);
-		await queryService.SetGameAsync(dto, cancellationToken);
-		return dto;
 	}
 }
